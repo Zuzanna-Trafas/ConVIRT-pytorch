@@ -39,12 +39,12 @@ class DataSetWrapper(object):
     def get_data_loaders(self):
         data_augment = self._get_simclr_pipeline_transform()
         train_dataset = ClrDataset(split="train", 
-                                    input_shape = self.input_shape,
+                                    input_shape = self.input_shape[0],
                                     transform=SimCLRDataTransform(data_augment)
                                     )
         
-        val_dataset = ClrDataset(split="val", 
-                                    input_shape = self.input_shape,
+        val_dataset = ClrDataset(split="validate", 
+                                    input_shape = self.input_shape[0],
                                     transform=SimCLRDataTransform(data_augment)
                                     )
     
