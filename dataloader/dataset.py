@@ -6,20 +6,17 @@ import numpy as np
 from PIL import Image, ImageFile
 import random
 import pickle
+import h5py
 
 # ImageFile.LOAD_TRUNCATED_IMAGES = True
+MIMIC_H5_PATH = "/mnt/data/MIMIC-CXR-JPG"
 
 class ClrDataset(Dataset):
     """Contrastive Learning Representations Dataset."""
 
     def __init__(self, 
-                csv_file, 
-                img_root_dir, 
-                input_shape, 
-                img_path_col, 
-                text_col, 
-                text_from_files, 
-                text_root_dir, 
+                split,
+                input_shape=224, 
                 transform=None):
         """
         Args:
@@ -29,55 +26,39 @@ class ClrDataset(Dataset):
             transform (callable, optional): Optional transform to be applied
                 on a sample.
         """
-        self.clr_frame = pd.read_csv(csv_file)
-        self.img_root_dir = img_root_dir
         self.transform = transform
         self.input_shape = input_shape
-        self.img_path_col = int(img_path_col)
-        self.text_col = int(text_col)
-        self.text_from_files = text_from_files
-        self.text_root_dir = text_root_dir
+        self.hdf5_file_path = f'{MIMIC_H5_PATH}/{split}_{input_shape}.h5'
+        # Open the HDF5 file
+        self.hdf5_file = h5py.File(self.hdf5_file_path, 'r')
+        
+        # Get the datasets
+        self.images_dataset = self.hdf5_file['images']
+        self.reports_dataset = self.hdf5_file['reports']
+        
+        # Calculate the length of the dataset
+        self.length = len(self.images_dataset)
 
     def __len__(self):
-        return len(self.clr_frame)
+        return self.length
 
     def __getitem__(self, idx):
-        if torch.is_tensor(idx):
-            idx = idx.tolist()
+        image = self.images_dataset[idx]
+        report = self.reports_dataset[idx]
 
-        img_name = os.path.join(self.img_root_dir,
-                                self.clr_frame.iloc[idx, self.img_path_col]
-                                )
-        image = Image.open(img_name)
-        if self.input_shape[2] == 3:
-            image = image.convert('RGB')
+        image_pil = Image.fromarray(image).convert('RGB')
+
+        # content = report.replace("\n", "")
+        # ls_text = content.split(".")
+        # if '' in ls_text:
+        #     ls_text.remove('')
+        # phrase = random.choice(ls_text)
         
-
-        #chooosig a phrase
-        if not self.text_from_files:
-            text = self.clr_frame.iloc[idx, self.text_col]
-            text = text.replace("\n", "")
-            ls_text = text.split(".")
-            if '' in ls_text:
-                ls_text.remove('')
-            phrase = random.choice(ls_text)
-
-        else:
-            text_path = os.path.join(self.text_root_dir, 
-                                     self.clr_frame.iloc[idx, self.text_col]
-                                    )
-            with open(text_path) as f:
-                content = f.readlines()
-            content = content.replace("\n", "")
-            ls_text = content.split(".")
-            if '' in ls_text:
-                ls_text.remove('')
-            phrase = random.choice(ls_text)
-
-
-        sample = {'image': image, 'phrase': phrase}
+        # Apply transformations if specified
+        sample = {'image': image_pil, 'phrase': report}
 
         if self.transform:
             sample = self.transform(sample)
-
+        
         return sample
+        

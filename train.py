@@ -17,6 +17,7 @@ logging.getLogger("transformers.tokenization_utils_base").setLevel(logging.ERROR
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 import sys, os
+import wandb
 
 apex_support = False
 try:
@@ -111,6 +112,7 @@ class SimCLR(object):
                 # normalize projection feature vectors
 
                 loss = self.nt_xent_criterion(zis, zls)
+                wandb.log({"train_loss": loss.item(), "step": n_iter})
 
                 # loss = self._step(model_res, model_bert, xis, xls, n_iter)
 
@@ -130,6 +132,8 @@ class SimCLR(object):
             # validate the model if requested
             if epoch_counter % self.config['eval_every_n_epochs'] == 0:
                 valid_loss = self._validate(model, valid_loader, n_iter)
+                wandb.log({"valid_loss": valid_loss, "epoch": epoch_counter})
+                
                 if valid_loss < best_valid_loss:
                     # save the model weights
                     best_valid_loss = valid_loss

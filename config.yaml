@@ -17,7 +17,7 @@ model:
   
 dataset:
   s: 1
-  input_shape: (224,224,3)
+  input_shape: 224
   num_workers: 4
   valid_size: 0.1
   csv_file: 'path/for/CSV_containing_MIMIC-CXR_paths_for_images_and_text.csv'
